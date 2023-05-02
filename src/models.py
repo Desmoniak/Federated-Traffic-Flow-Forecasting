@@ -318,7 +318,8 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-            train_losses.append(loss.item())
+        train_loss /= len(train_loader)
+        train_losses.append(train_loss)
         val_loss = 0.0
 
         for inputs, targets in val_loader:
