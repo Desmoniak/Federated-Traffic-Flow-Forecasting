@@ -273,8 +273,8 @@ class TGCN(torch.nn.Module):
 
 
 import os
+import matplotlib.pyplot as plt
 def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, remove = False):
-    
     """
     Train a model
 
@@ -331,13 +331,17 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            path_folder = model_path.split("/")[:-1]
+            new_path = '/'.join(path_folder)
+            os.makedirs(new_path, exist_ok=True)
             torch.save(model.state_dict(), model_path)
         print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}')
     best_model =  copy.deepcopy(model)
     best_model.load_state_dict(torch.load(model_path))
     if remove:
         os.remove(model_path)
-    return best_model
+    
+    return best_model, valid_losses
 
 
 def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion = torch.nn.MSELoss(), percentage_error_fix = 1):

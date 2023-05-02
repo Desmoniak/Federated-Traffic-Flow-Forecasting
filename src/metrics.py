@@ -13,6 +13,9 @@ def mape(y_true, y_pred, EPSILON=0):
     # The epsilon parameter move the time series away from zero values of values epsilon
     return np.mean(np.abs((y_true - y_pred)/(y_true + EPSILON)))*100   
 
+def smape(y_true, y_pred, EPSILON = 0):
+    return np.mean(2 * np.abs(y_pred - y_true) / (np.abs(y_true + EPSILON) + np.abs(y_pred)))*100
+
 def maape(y_true,y_pred,EPSILON=0):
     # The epsilon parameter move the time series away from zero values of values epsilon
     return (np.mean(np.arctan(np.abs((y_true - y_pred) / (y_true +EPSILON))))*100)

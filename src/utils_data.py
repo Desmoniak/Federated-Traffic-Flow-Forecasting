@@ -53,7 +53,7 @@ def normalize_data(df_PeMS):
     """
     maximum = df_PeMS.max().max()
     df_PeMS = df_PeMS /  maximum
-    return df_PeMS
+    return df_PeMS, maximum
 
 def center_reduce(df):
     
@@ -325,6 +325,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
         df_PeMS, meanstd_dict = center_reduce(df_PeMS)
         return df_PeMS, adjacency_matrix, meanstd_dict
     elif normalize :
-        df_PeMS = normalize_data(df_PeMS)
+        df_PeMS, maximum = normalize_data(df_PeMS)
+        return df_PeMS, adjacency_matrix, maximum
         
     return df_PeMS, adjacency_matrix
