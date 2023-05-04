@@ -9,10 +9,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def ExpSmooth(df_PeMS,alpha=0.2):
-    
     """
     Simple Exponential smoothing using the Holt Winters method without using statsmodel
-    
+
     Parameters:
     -----------
     df_PeMS : pd.DataFrame 
@@ -25,7 +24,7 @@ def ExpSmooth(df_PeMS,alpha=0.2):
     pd.Dataframe
         Dataframe with the input smoothed
     """
-    
+
     # Apply exponential smoothing to the time serie
     for i in range(len(df_PeMS.columns)):
         y = df_PeMS[df_PeMS.columns[i]]
@@ -73,7 +72,7 @@ def center_reduce(df):
         Dictionary containing the initial mean and std to denormalize data
     """
 
-    meanvar_dict={}
+    meanstd_dict={}
     for column in df.columns:
         colmean = df[column].mean()
         colstd = df[column].std()
@@ -84,8 +83,7 @@ def center_reduce(df):
 
 #TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
-    import pickle 
-    
+    import pickle
 
     """
     Generates pickled (.pkl) dictionary files with the train/val/test data and an associated model
@@ -108,7 +106,7 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
         percentage of the data to be used for testing
 
     """
-    
+
     train_len = len(df_PeMS)
 
     if subgraph:
@@ -122,11 +120,9 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
         columns = df_PeMS.columns[i:i+cluster_size]
 
     filename = Path(dirpath) / f"S{cluster_size}l{train_len}"
-    
+
     if (filename.isfile()):
 
-        
-    
         cluster_dict={"size":cluster_size}
 
         for i in nodes_range:
@@ -159,7 +155,7 @@ class TimeSeriesDataset(Dataset):
     PyTorch Dataset model with input/target pairs for the LSTM model
     Defines the sliding window size and stride
     """
-    
+
     def __init__(self, data, window_size, stride, target_size=1):
         self.data = data
         self.window_size = window_size
@@ -192,7 +188,7 @@ def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32
         size of the target values of each sliding windows
 
     """
-    
+
     dataset = TimeSeriesDataset(data.values, window_size, stride, target_size)
     loader = DataLoader(dataset, batch_size, shuffle=False)
     if torch.cuda.is_available():
@@ -202,7 +198,7 @@ def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32
 def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
     """
     Returns torch.DataLoader for train validation and test data
-    
+
     Parameters
     ----------
     df_PeMs : pd.Dataframe
@@ -216,12 +212,12 @@ def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window
     target_size : int 
         size of the target values of each sliding windows
     """
-    
+
     from torch.utils.data import  DataLoader
     
     if columns == 0:
         columns = df_PeMS.columns
-        
+
     train_len = len(df_PeMS)
 
     train_data= df_PeMS[columns][:int(train_len * perc_train)]
@@ -239,9 +235,9 @@ def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window
 def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     import pandas as pd
     import numpy as np
-    
+
     """
-    
+
     Function to load traffic flow data from 'npz' and 'csv' files associated with PeMS
 
     Parameters
@@ -253,10 +249,10 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     -------
     df_PeMS : pd.Dataframe
         With the flow between two sensors
-    
+
     df_distance:
         Dataframe with the distance metrics between sensors
-    
+
     """
 
 
@@ -266,7 +262,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     # the flow data is stored in 'data' third dimension
     df_flow = np.load(flow_file)['data'][:,:,0]
     df_distance = pd.read_csv(csv_file)
-    
+
     dict_flow = { k : df_flow[:,k] for k in range(df_flow.shape[1])}
 
     df_PeMS = pd.DataFrame(dict_flow)
@@ -282,7 +278,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
 
 
-def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_reduce = False, normalize = False,sort_by_mean = True):
+def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_and_reduce = False, normalize = False,sort_by_mean = True):
     from src.utils_graph import create_graph, subgraph_dijkstra, compute_adjacency_matrix
 
     """
@@ -321,7 +317,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     if smooth :
         df_PeMS = ExpSmooth(df_PeMS)
-    if center_reduce :
+    if center_and_reduce :
         df_PeMS, meanstd_dict = center_reduce(df_PeMS)
         return df_PeMS, adjacency_matrix, meanstd_dict
     elif normalize :
