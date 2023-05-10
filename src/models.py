@@ -274,6 +274,7 @@ class TGCN(torch.nn.Module):
 
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, remove = False):
     """
     Train a model
@@ -311,10 +312,16 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     for epoch in range(num_epochs):
         train_loss = 0.0
         for inputs, targets in train_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            batch_size, horizon_size, num_nodes = targets.size()
+            final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
+            outputs = model(inputs)
+            final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1).float()
+            for i in range(1, horizon_size):
+                outputs = model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
             optimizer.zero_grad()
-            inputs, targets = inputs.to(device), targets.squeeze().to(device)
-            outputs = model(inputs.float())
-            loss = criterion(outputs, targets.float())
+            loss = criterion(final_output, targets)
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
@@ -323,9 +330,16 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
         val_loss = 0.0
 
         for inputs, targets in val_loader:
-            inputs, targets = inputs.to(device), targets.squeeze().to(device)
-            outputs = model(inputs.float())
-            loss = criterion(outputs, targets.float())
+            inputs, targets = inputs.to(device), targets.to(device)
+            batch_size, horizon_size, num_nodes = targets.size()
+            final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
+            outputs = model(inputs)
+            final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
+            for i in range(1 ,horizon_size):
+                outputs = model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
+            optimizer.zero_grad()
+            loss = criterion(final_output, targets)
             val_loss += loss.item()            
         val_loss /= len(val_loader)
         valid_losses.append(val_loss)
