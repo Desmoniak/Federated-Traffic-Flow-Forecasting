@@ -2,7 +2,7 @@
 import folium 
 from folium import plugins
 import streamlit as st
-from streamlit_folium import st_folium
+from streamlit_folium import st_folium, folium_static
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -60,14 +60,12 @@ def create_bars_true_pred_value(marker_location, true_value, pred_value, map_fol
     """
     lat, long = marker_location
     max_value = max(true_value, pred_value)
-    folium.Rectangle(bounds=[[lat + 0.001, long + 0.0015], [lat + 0.0039*(true_value/max_value), long + 0.0024]], tooltip=f"True value : {true_value}", color="black", radius=30, fill=True, opacity=100, fill_opacity=1, fill_color="orange").add_to(map_folium)
-    folium.Rectangle(bounds=[[lat + 0.001, long + 0.0030], [lat + 0.0039*(pred_value/max_value), long + 0.0039]], tooltip=f"Pred value : {pred_value}", color="black", radius=30, fill=True,opacity=100, fill_opacity=1, fill_color="brown").add_to(map_folium) 
+    folium.Rectangle(bounds=[[lat + 0.001, long + 0.0015], [lat + 0.0039*(pred_value/max_value), long + 0.0024]], tooltip=f"Pred value : {pred_value}", color="black", radius=30, fill=True, opacity=100, fill_opacity=1, fill_color="orange").add_to(map_folium)
+    folium.Rectangle(bounds=[[lat + 0.001, long + 0.0030], [lat + 0.0039*(true_value/max_value), long + 0.0039]], tooltip=f"True value : {true_value}", color="black", radius=30, fill=True,opacity=100, fill_opacity=1, fill_color="brown").add_to(map_folium)
 
 ###############################################################################
 # Map Global
 ###############################################################################
-
-st.header('Global model results')
 for road, coords in seattle_roads.items():
     tooltip = f"Road: {road}"
     color = "green" if road in ["Captor_07", "Captor_08"] else "red" if road == "Captor_03" else "blue"
@@ -86,12 +84,10 @@ for start, end in polyline_roads:
 
 seattle_map_global.fit_bounds(seattle_map_global.get_bounds())
 
-st_data = st_folium(seattle_map_global, width=750, key="seattle_map_global")
 
 ###############################################################################
 # Map Local
 ###############################################################################
-st.header('Local model results')
 for road, coords in seattle_roads.items():
     tooltip = f"Road: {road}"
     color = "red" if road in ["Captor_07", "Captor_08"] else "green" if road == "Captor_03" else "blue"
@@ -102,7 +98,7 @@ for road, coords in seattle_roads.items():
     folium.Marker(location=coords, tooltip=tooltip).add_to(seattle_map_local)
     if road in ["Captor_03", "Captor_07", "Captor_08"] : 
         folium.Circle(location=coords, color=color, radius=radius, fill=True, opacity=100, fill_opacity=1, fill_color=color).add_to(seattle_map_local)
-        create_bars_true_pred_value(coords, 100, 140, seattle_map_local)
+        create_bars_true_pred_value(coords, 100, 78, seattle_map_local)
 
 for start, end in polyline_roads:
     locations = [seattle_roads[start], seattle_roads[end]]
@@ -110,9 +106,13 @@ for start, end in polyline_roads:
 
 seattle_map_local.fit_bounds(seattle_map_local.get_bounds())
 
-st_folium(seattle_map_local, width=750, key="seattle_map_local")
-
-
+col1, col2 = st.columns(2, gap="medium")
+with col1:
+    col1.header('global model results')
+    folium_static(seattle_map_local, width=750)
+with col2:
+    col2.header('Local model results')
+    folium_static(seattle_map_global, width=750)
 
 dossier = os.listdir('./center_and_reduce') # liste le contenu du dossier courant
 
