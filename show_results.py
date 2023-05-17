@@ -10,9 +10,27 @@ import os
 import osmnx as ox
 import networkx as nx
 
-st.set_page_config(layout="wide")
-# Créer un titre pour le dashboard
-st.title('Analyses results experimentation')
+# Le fédéré taille 1
+# Le local taille 0.87
+
+# Le fédéré 1
+# local 0.89
+
+# le fédéré 1
+# local 0.87
+
+def rgb_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
+
+
+def create_circle_precision_predict(marker_location, value_percent, map_folium, color):
+    lat, long = marker_location
+    # folium.Circle(location=[lat+0.0020,long+0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    # folium.Circle(location=[lat+0.0020,long+0.0018], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+    # folium.map.Marker([lat+0.0020,long+0.0016], icon=folium.features.DivIcon(html=f"<div style='font-size: 10pt; color: black'>{int(value_percent*100)}%</div>")).add_to(map_folium)
+    folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+
 
 # Define the latitude and longitude coordinates of Seattle roads
 seattle_roads = {
@@ -37,82 +55,81 @@ polyline_roads = [("Captor_01", "Captor_10"), ("Captor_02", "Captor_01"), ("Capt
                 ("Captor_03", "Captor_12"), ("Captor_04", "Captor_07"), ("Captor_05", "Captor_06"), ("Captor_05", "Captor_10"), ("Captor_07", "Captor_08"), ("Captor_07", "Captor_13"), ("Captor_07", "Captor_14"),
                 ("Captor_08", "Captor_09"), ("Captor_08", "Captor_11")]
 
-
-
-# Create a map centered on Seattle
+# Create maps centered on Seattle
+seattle_map = folium.Map(location=[47.67763404920509, -122.30064862690335], zoom_start=15)
 seattle_map_global = folium.Map(location=[47.67763404920509, -122.30064862690335], zoom_start=15)
 seattle_map_local = folium.Map(location=[47.67763404920509, -122.30064862690335], zoom_start=15)
 
-def create_bars_true_pred_value(marker_location, true_value, pred_value, map_folium):
-    """
-    Create two bars in the top-right corner near the marker location.
-    
-    Parameters
-    ----------
-        marker_location : 
-            coordinate of the Marker Filium [lat, long]
-        true_value : 
-            the true value
-        pred_value : 
-            the value predict by the model 
-        map_folium : 
-            the map folium where bars will be added
-    """
-    lat, long = marker_location
-    max_value = max(true_value, pred_value)
-    folium.Rectangle(bounds=[[lat + 0.001, long + 0.0015], [lat + 0.0039*(pred_value/max_value), long + 0.0024]], tooltip=f"Pred value : {pred_value}", color="black", radius=30, fill=True, opacity=100, fill_opacity=1, fill_color="orange").add_to(map_folium)
-    folium.Rectangle(bounds=[[lat + 0.001, long + 0.0030], [lat + 0.0039*(true_value/max_value), long + 0.0039]], tooltip=f"True value : {true_value}", color="black", radius=30, fill=True,opacity=100, fill_opacity=1, fill_color="brown").add_to(map_folium)
+
+st.set_page_config(layout="wide")
+st.title('Analyses results experimentation')
 
 ###############################################################################
-# Map Global
+# Map
 ###############################################################################
+for road, coords in seattle_roads.items():
+    tooltip = f"Road: {road}"
+    folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="lightgray")).add_to(seattle_map)
+    folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="lightgray")).add_to(seattle_map_global)
+    folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="lightgray")).add_to(seattle_map_local)
+
+for start, end in polyline_roads:
+    locations = [seattle_roads[start], seattle_roads[end]]
+    folium.PolyLine(locations=locations, weight=3, color="brown").add_to(seattle_map)
+    folium.PolyLine(locations=locations, weight=3, color="brown").add_to(seattle_map_global)
+    folium.PolyLine(locations=locations, weight=3, color="brown").add_to(seattle_map_local)
+
 for road, coords in seattle_roads.items():
     tooltip = f"Road: {road}"
     color = "green" if road in ["Captor_07", "Captor_08"] else "red" if road == "Captor_03" else "blue"
-    if road in ["Captor_07", "Captor_08"] : 
-        radius = 130 
+    if road == "Captor_07" :
+        folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
+        create_circle_precision_predict(coords, 0.90, seattle_map_global, "#22ED1E")
+        folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
+        create_circle_precision_predict(coords, 0.87*0.90, seattle_map_local, "#C92A2A")
+    elif road == "Captor_08" :
+        folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
+        create_circle_precision_predict(coords, 0.85, seattle_map_global, "#4B4BD9")
+        folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
+        create_circle_precision_predict(coords, 0.85, seattle_map_local, "#4B4BD9")
     elif road == "Captor_03" :
-        radius = 80
-    folium.Marker(location=coords, tooltip=tooltip).add_to(seattle_map_global)
-    if road in ["Captor_03", "Captor_07", "Captor_08"] : 
-        folium.Circle(location=coords, color=color, radius=radius, fill=True, opacity=100, fill_opacity=1, fill_color=color).add_to(seattle_map_global)
-        create_bars_true_pred_value(coords, 230, 500, seattle_map_global)
+        folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
+        create_circle_precision_predict(coords, 0.90, seattle_map_global, "#22ED1E")
+        folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
+        create_circle_precision_predict(coords, 0.89*0.90, seattle_map_local, "#C92A2A")
 
-for start, end in polyline_roads:
-    locations = [seattle_roads[start], seattle_roads[end]]
-    folium.PolyLine(locations=locations, weight=3, color="blue").add_to(seattle_map_global)
 
+# Center the map
+seattle_map.fit_bounds(seattle_map.get_bounds())
 seattle_map_global.fit_bounds(seattle_map_global.get_bounds())
-
-
-###############################################################################
-# Map Local
-###############################################################################
-for road, coords in seattle_roads.items():
-    tooltip = f"Road: {road}"
-    color = "red" if road in ["Captor_07", "Captor_08"] else "green" if road == "Captor_03" else "blue"
-    if road in ["Captor_07", "Captor_08"] : 
-        radius = 70  
-    elif road == "Captor_03" :
-        radius = 50
-    folium.Marker(location=coords, tooltip=tooltip).add_to(seattle_map_local)
-    if road in ["Captor_03", "Captor_07", "Captor_08"] : 
-        folium.Circle(location=coords, color=color, radius=radius, fill=True, opacity=100, fill_opacity=1, fill_color=color).add_to(seattle_map_local)
-        create_bars_true_pred_value(coords, 100, 78, seattle_map_local)
-
-for start, end in polyline_roads:
-    locations = [seattle_roads[start], seattle_roads[end]]
-    folium.PolyLine(locations=locations, weight=3, color="blue").add_to(seattle_map_local)
-
 seattle_map_local.fit_bounds(seattle_map_local.get_bounds())
 
-col1, col2 = st.columns(2, gap="medium")
+# Container for the general map
+with st.container():
+    col1, col2, col3 = st.columns((1,2,1))
+    with col2:
+        col2.header("Seattle Map")
+        folium_static(seattle_map, width=750)
+
+# Create a table 
+col1, col2 = st.columns(2, gap="small")
 with col1:
-    col1.header('global model results')
-    folium_static(seattle_map_local, width=750)
+    col1.header('Federated model results')
+    folium_static(seattle_map_global, width=650)
 with col2:
-    col2.header('Local model results')
-    folium_static(seattle_map_global, width=750)
+    col2.header('Local models results')
+    folium_static(seattle_map_local, width=650)
+
+
+
+
+
+
+
+
+
+
+
 
 dossier = os.listdir('./center_and_reduce') # liste le contenu du dossier courant
 
