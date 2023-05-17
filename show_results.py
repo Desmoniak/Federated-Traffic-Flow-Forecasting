@@ -10,20 +10,29 @@ import os
 import osmnx as ox
 import networkx as nx
 
-# Le fédéré taille 1
-# Le local taille 0.87
-
-# Le fédéré 1
-# local 0.89
-
-# le fédéré 1
-# local 0.87
-
+###############################################################################
+# Utility functions
+###############################################################################
+# TODO move the function in a utility file
 def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % rgb
 
-
+# TODO move the function in a utility file 
 def create_circle_precision_predict(marker_location, value_percent, map_folium, color):
+    """
+    Draw a circle at the position of the marker.
+
+    Parameters:
+    ----------
+        marker_location (Marker Folium)
+
+        value_percent (float)
+            
+        map_folium (Map Folium)
+
+        color : 
+            Hex code HTML
+    """
     lat, long = marker_location
     # folium.Circle(location=[lat+0.0020,long+0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
     # folium.Circle(location=[lat+0.0020,long+0.0018], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
@@ -32,7 +41,11 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
     folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
 
 
-# Define the latitude and longitude coordinates of Seattle roads
+###############################################################################
+# Data
+###############################################################################
+# TODO Try to find a way to get [lat, long] on PeMS04
+# Define the latitude and longitude coordinates of Seattle roads 
 seattle_roads = {
     "Captor_01": [47.679470, -122.315626],
     "Captor_02": [47.679441, -122.306665],
@@ -50,23 +63,26 @@ seattle_roads = {
     "Captor_14": [47.6974488132659, -122.29057907732675]
 }
 
+# TODO use adjacency matrix
+# Shape (len(road)*len(road)) with 0 if no link between the road or 1 if link between the road
 # Add polylines to connect the roads
 polyline_roads = [("Captor_01", "Captor_10"), ("Captor_02", "Captor_01"), ("Captor_02", "Captor_04"), ("Captor_02", "Captor_05"),
                 ("Captor_03", "Captor_12"), ("Captor_04", "Captor_07"), ("Captor_05", "Captor_06"), ("Captor_05", "Captor_10"), ("Captor_07", "Captor_08"), ("Captor_07", "Captor_13"), ("Captor_07", "Captor_14"),
                 ("Captor_08", "Captor_09"), ("Captor_08", "Captor_11")]
 
+
+###############################################################################
+# Map Folium
+###############################################################################
+# TODO find the global location of captors of PeMS04
 # Create maps centered on Seattle
 seattle_map = folium.Map(location=[47.67763404920509, -122.30064862690335], zoom_start=15)
 seattle_map_global = folium.Map(location=[47.67763404920509, -122.30064862690335], zoom_start=15)
 seattle_map_local = folium.Map(location=[47.67763404920509, -122.30064862690335], zoom_start=15)
 
-
 st.set_page_config(layout="wide")
 st.title('Analyses results experimentation')
 
-###############################################################################
-# Map
-###############################################################################
 for road, coords in seattle_roads.items():
     tooltip = f"Road: {road}"
     folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="lightgray")).add_to(seattle_map)
@@ -98,12 +114,15 @@ for road, coords in seattle_roads.items():
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
         create_circle_precision_predict(coords, 0.89*0.90, seattle_map_local, "#C92A2A")
 
-
 # Center the map
 seattle_map.fit_bounds(seattle_map.get_bounds())
 seattle_map_global.fit_bounds(seattle_map_global.get_bounds())
 seattle_map_local.fit_bounds(seattle_map_local.get_bounds())
 
+
+###############################################################################
+# Streamlint
+###############################################################################
 # Container for the general map
 with st.container():
     col1, col2, col3 = st.columns((1,2,1))
@@ -111,7 +130,7 @@ with st.container():
         col2.header("Seattle Map")
         folium_static(seattle_map, width=750)
 
-# Create a table 
+# Create a table
 col1, col2 = st.columns(2, gap="small")
 with col1:
     col1.header('Federated model results')
@@ -128,9 +147,9 @@ with col2:
 
 
 
-
-
-
+###############################################################################
+# Statistics
+###############################################################################
 dossier = os.listdir('./center_and_reduce') # liste le contenu du dossier courant
 
 dossiers = list(dossier)
