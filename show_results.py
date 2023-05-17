@@ -150,6 +150,9 @@ with col2:
 ###############################################################################
 # Statistics
 ###############################################################################
+###############################################################################
+# Find the data
+###############################################################################
 dossier = os.listdir('./center_and_reduce') # liste le contenu du dossier courant
 
 dossiers = list(dossier)
@@ -167,6 +170,14 @@ for _ in dossiers:
 
 window_horizon = st.selectbox('Choose the couple windows and horizon size', windows_horizons)
 
+normalization = "center_and_reduce"
+path_save_model = f"./{normalization}/nb_captor_{nb_captor}/windows_{window_horizon[0]}_out_{window_horizon[1]}"
+
+final_results = pd.read_pickle(f"{path_save_model}/final_resultats.pkl")
+
+###############################################################################
+# Choose the statistics
+###############################################################################
 results = st.selectbox('Choose what you want to see', ["all", "general", "diff", "good and bad", "boxplot"])
 
 if(results in ["good and bad", "boxplot"]):
@@ -176,23 +187,26 @@ if(results in ["good and bad", "boxplot"]):
     st.text("A positive value means that the model compare to the other perform x % better")
     st.text("A negative value means that the model compare to the other perform x % worse")
 
-# Parameters
-normalization = "center_and_reduce"
-path_save_model = f"./{normalization}/nb_captor_{nb_captor}/windows_{window_horizon[0]}_out_{window_horizon[1]}"
 
-model_names = ["TGCN Model", "LSTM Model", "GRU Model"]
-diff_resultats = []
 ###############################################################################
-# Filtrer les résultats selon le modèle choisi
-final_results = pd.read_pickle(f"{path_save_model}/final_resultats.pkl")
+# Print statistics and plots
+###############################################################################
+model_names = ["TGCN Model", "LSTM Model", "GRU Model"]
 
+
+    ###############################################################################
+    # General
+    ###############################################################################
 if(results == "all" or results == "general"):
     st.subheader('Summary statistics of how well the predictions goes (values are in %)')
     st.text("For RMSE and MAAPE, the smaller the value is, the better the model performs")
     st.dataframe(final_results.groupby("Model_Name")[["RMSE", "MAAPE"]].describe().rename(columns={"count": "nb captor"}), use_container_width=True)
-###############################################################################
 
-###############################################################################
+
+    ###############################################################################
+    # Diff
+    ###############################################################################
+diff_resultats = []
 # Compute results
 for i in final_results.index.get_level_values("Captor").unique():
     diff_resultats.extend(
@@ -259,9 +273,11 @@ if(results == "all" or results == "diff"):
     st.text("A negative value means that the model compare to the other perform x % worse")
     diff_resultats = diff_resultats * -1
     st.dataframe(diff_resultats.groupby("Diff").describe().rename(columns={"count": "nb captor"}), use_container_width=True)
-###############################################################################
 
-###############################################################################
+
+    ###############################################################################
+    # Good and bad
+    ###############################################################################
 # Initialisation dict good and bad results
 good_results = {model_name: [] for model_name in model_names}
 bad_results = {model_name: [] for model_name in model_names}
@@ -292,9 +308,11 @@ if(results == "all" or results == "good and bad"):
     for model_name in model_names:
         col1.dataframe(good_df[model_name].describe(), use_container_width=True) 
         col2.dataframe(bad_df[model_name].describe(), use_container_width=True)
-###############################################################################
 
-###############################################################################
+
+    ###############################################################################
+    # Boxplot
+    ###############################################################################
 if(results == "all" or results == "boxplot"):
     # print boxplot
     st.subheader('Box plot of MAAPE values by models')
@@ -304,4 +322,3 @@ if(results == "all" or results == "boxplot"):
     bar_plot_results.boxplot(column="MAAPE", by="Model_Name", fontsize=10, figsize=(8,8), ylabel="MAAPE values", xlabel="Model Name", ax=ax)
     plt.yticks(np.arange(0, bar_plot_results["MAAPE"].max(), 4))
     st.pyplot(fig)
-###############################################################################
