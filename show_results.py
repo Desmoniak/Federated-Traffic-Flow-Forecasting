@@ -1,23 +1,18 @@
-# Import necessary library
+###############################################################################
+# Libraries
+###############################################################################
 import folium 
-from folium import plugins
 import streamlit as st
-from streamlit_folium import st_folium, folium_static
+from streamlit_folium import folium_static
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import osmnx as ox
-import networkx as nx
+
 
 ###############################################################################
 # Utility functions
 ###############################################################################
-# TODO move the function in a utility file
-def rgb_to_hex(rgb):
-    return '#%02x%02x%02x' % rgb
-
-# TODO move the function in a utility file 
 def create_circle_precision_predict(marker_location, value_percent, map_folium, color):
     """
     Draw a circle at the position of the marker.
@@ -34,11 +29,11 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
             Hex code HTML
     """
     lat, long = marker_location
-    # folium.Circle(location=[lat+0.0020,long+0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
-    # folium.Circle(location=[lat+0.0020,long+0.0018], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
-    # folium.map.Marker([lat+0.0020,long+0.0016], icon=folium.features.DivIcon(html=f"<div style='font-size: 10pt; color: black'>{int(value_percent*100)}%</div>")).add_to(map_folium)
-    folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
-    folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+    folium.Circle(location=[lat+0.0020,long+0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    folium.Circle(location=[lat+0.0020,long+0.0018], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+    folium.map.Marker([lat+0.0022,long+0.0014], icon=folium.features.DivIcon(html=f"<div style='font-weight:bold; font-size: 15pt; color: black'>{int(value_percent*100)}%</div>")).add_to(map_folium)
+    # folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
 
 
 ###############################################################################
@@ -102,19 +97,19 @@ for road, coords in seattle_roads.items():
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
         create_circle_precision_predict(coords, 0.90, seattle_map_global, "#22ED1E")
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
-        create_circle_precision_predict(coords, 0.87*0.90, seattle_map_local, "#C92A2A")
+        create_circle_precision_predict(coords, 0.87*0.90, seattle_map_local, "#E54640")
     elif road == "Captor_08" :
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
-        create_circle_precision_predict(coords, 0.85, seattle_map_global, "#4B4BD9")
+        create_circle_precision_predict(coords, 0.85, seattle_map_global, "#6EBEFF")
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
-        create_circle_precision_predict(coords, 0.85, seattle_map_local, "#4B4BD9")
+        create_circle_precision_predict(coords, 0.85, seattle_map_local, "#6EBEFF")
     elif road == "Captor_03" :
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
         create_circle_precision_predict(coords, 0.90, seattle_map_global, "#22ED1E")
         folium.Marker(location=coords, tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
-        create_circle_precision_predict(coords, 0.89*0.90, seattle_map_local, "#C92A2A")
+        create_circle_precision_predict(coords, 0.89*0.90, seattle_map_local, "#E54640")
 
-# Center the map
+# Center the map according to the markers on the map
 seattle_map.fit_bounds(seattle_map.get_bounds())
 seattle_map_global.fit_bounds(seattle_map_global.get_bounds())
 seattle_map_local.fit_bounds(seattle_map_local.get_bounds())
@@ -194,10 +189,7 @@ if(results in ["good and bad", "boxplot"]):
 model_names = ["TGCN Model", "LSTM Model", "GRU Model"]
 
 
-    ###############################################################################
-    # General
-    ###############################################################################
-if(results == "all" or results == "general"):
+if results in ["all", "general"]:
     st.subheader('Summary statistics of how well the predictions goes (values are in %)')
     st.text("For RMSE and MAAPE, the smaller the value is, the better the model performs")
     st.dataframe(final_results.groupby("Model_Name")[["RMSE", "MAAPE"]].describe().rename(columns={"count": "nb captor"}), use_container_width=True)
@@ -265,7 +257,7 @@ for i in final_results.index.get_level_values("Captor").unique():
 diff_resultats = pd.DataFrame(diff_resultats, columns=["Diff", "MAAPE"])
 diff_resultats.set_index(["Diff"], inplace=True)
 
-if(results == "all" or results == "diff"):
+if results in ["all", "diff"]:
     st.header("Focus on MAAPE values")
     st.text("For MAAPE, the smaller the value is, the better the model performs")
     st.subheader('Summary statistics of how a model perform better than an other (values are in %)')
@@ -293,7 +285,7 @@ for captor_id in final_results.index.get_level_values("Captor").unique():
         if model_name != best_model_name:
             bad_result = final_results.loc[captor_id].loc[model_name]["MAAPE"]
             bad_results[model_name].append(bad_result)
-            
+
 good_df = {}
 bad_df = {}
 for model_name in model_names:
@@ -301,7 +293,7 @@ for model_name in model_names:
     bad_df[model_name] = pd.DataFrame(bad_results[model_name], columns=[f"{model_name}"])
 
 
-if(results == "all" or results == "good and bad"):
+if results in ["all", "good and bad"]:
     col1, col2 = st.columns(2) 
     col1.header('Summary where the model get the better results')
     col2.header('Summary where the model not get the best results')
@@ -313,7 +305,7 @@ if(results == "all" or results == "good and bad"):
     ###############################################################################
     # Boxplot
     ###############################################################################
-if(results == "all" or results == "boxplot"):
+if results in ["all", "boxplot"]:
     # print boxplot
     st.subheader('Box plot of MAAPE values by models')
     st.text("For MAAPE, the smaller the value is, the better the model performs")
