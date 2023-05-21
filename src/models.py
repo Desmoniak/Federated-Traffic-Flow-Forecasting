@@ -336,7 +336,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
             outputs = model(inputs)
             final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
             for i in range(1 ,horizon_size):
-                outputs = model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                outputs = model(torch.cat((inputs[:, i:, :], final_output), dim=1))
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
             optimizer.zero_grad()
             loss = criterion(final_output, targets)
