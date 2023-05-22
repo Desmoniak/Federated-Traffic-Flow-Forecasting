@@ -1,6 +1,7 @@
 /Other/*
 /experiment/*
 /script/*
+__pycache__/
 *.pth
 *.pkl
 EXP_py.py
@@ -10,3 +11,6 @@ Exp_PEMS.py
 /model/*
 Experiment federated 2_cope.ipynb
 metric.pkl
+*.pyc
+Experiment federated small data copy.ipynb
+Experiment federated small data.ipynb

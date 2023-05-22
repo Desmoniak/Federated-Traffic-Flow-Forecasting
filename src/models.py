@@ -12,10 +12,8 @@ The TGCN model is based on :
 
 
 import torch
-import copy
 from src.utils_graph import compute_laplacian_with_self_loop
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class LSTMModel(torch.nn.Module):
@@ -45,25 +43,22 @@ class LSTMModel(torch.nn.Module):
         return out
 
 
+
 class GRUModel(torch.nn.Module):
     
     """
     Class to define GRU model here with 6 GRU layers and 1 fully connected layer by default
-
     Parameters
     ----------
     input_size : int
-
     hidden_size : int
         number of hidden unit.
-
     output_size : int
-
     num_layer : int = 6
         number of layer.
     """
     
-    def __init__(self, input_size : int, hidden_size : int, output_size : int, num_layers : int=6):
+    def __init__(self, input_size : int,  hidden_size : int, output_size : int,  num_layers : int=6):
         super(GRUModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -81,17 +76,13 @@ class TGCNGraphConvolution(torch.nn.Module):
     
     """
     Class to define TGCNGraphConvolution that is use by class TGCNCell
-
     Parameters
     ----------
     adj : matrix
         adjacency matrix
-
     num_gru_units : int
         number of hidden unit.
-
     output_size : int
-
     bias : int = 0.0
         default bias.
     """
@@ -163,17 +154,13 @@ class TGCNCell(torch.nn.Module):
     
     """
     Class to define TGCNCell that is use by class TGCN
-
     Parameters
     ----------
     adj : matrix
         adjacency matrix
-
     input_dim : int
-
     hidden_dim : int
         number of hidden unit.
-
     num_layer : int = 1
         number of layer.
     """
@@ -221,17 +208,13 @@ class TGCN(torch.nn.Module):
     
     """
     Class to define TGCN
-
     Parameters
     ----------
     adj : matrix
         adjacency matrix
-
     hidden_dim : int
         number of hidden unit.
-
     output_size : int = 1
-
     num_layer : int = 1
         number of layer.
     """
@@ -272,178 +255,5 @@ class TGCN(torch.nn.Module):
         }
 
 
-import os
-import matplotlib.pyplot as plt
-import numpy as np
-def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, remove = False):
-    """
-    Train a model
 
-    Parameters
-    ----------
-    model : any
-        model to train.
-
-    train_loader : DataLoader
-        Train Dataloader.
-
-    val_loader : Dataloader
-        Valid Dataloader.
-
-    model_path : string
-        Where to save the model after training it.
-
-    num_epoch : int=200
-        How many epochs to train the model.
-
-    remove : bool=False
-        Remove the model after the training phase.
-    """
-
-    # Train your model and evaluate on the validation set
-    # Define the loss function and optimizer
-    criterion = torch.nn.MSELoss()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    best_val_loss = float('inf')
-    train_losses = []
-    valid_losses = []
-    for epoch in range(num_epochs):
-        train_loss = 0.0
-        for inputs, targets in train_loader:
-            inputs, targets = inputs.to(device), targets.to(device)
-            batch_size, horizon_size, num_nodes = targets.size()
-            final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
-            outputs = model(inputs)
-            final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1).float()
-            for i in range(1, horizon_size):
-                outputs = model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
-                final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
-            optimizer.zero_grad()
-            loss = criterion(final_output, targets)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-        train_loss /= len(train_loader)
-        train_losses.append(train_loss)
-        val_loss = 0.0
-
-        for inputs, targets in val_loader:
-            inputs, targets = inputs.to(device), targets.to(device)
-            batch_size, horizon_size, num_nodes = targets.size()
-            final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
-            outputs = model(inputs)
-            final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
-            for i in range(1 ,horizon_size):
-                outputs = model(torch.cat((inputs[:, i:, :], final_output), dim=1))
-                final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
-            optimizer.zero_grad()
-            loss = criterion(final_output, targets)
-            val_loss += loss.item()            
-        val_loss /= len(val_loader)
-        valid_losses.append(val_loss)
-
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            path_folder = model_path.split("/")[:-1]
-            new_path = '/'.join(path_folder)
-            os.makedirs(new_path, exist_ok=True)
-            torch.save(model.state_dict(), model_path)
-        # print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}')
-    best_model =  copy.deepcopy(model)
-    best_model.load_state_dict(torch.load(model_path))
-    if remove:
-        os.remove(model_path)
-    
-    return best_model, valid_losses, train_losses
-
-
-def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion = torch.nn.MSELoss(), percentage_error_fix = 1):
-    from src.metrics import rmse, rmspe, maape, mape 
-    from sklearn.metrics import mean_absolute_error
-
-    """
-    Test model using test data
-
-    Parameters
-    ----------
-    best_model : any
-        model to test.
-
-    test_loader : DataLoader
-        Test Dataloader.
-
-    path : string
-        model path to load the model from
-
-    plot : bool=False
-        plot actual vs prediction
-    percentage_error_fix : float
-        Add a float to the time serie for calculation of percentage because of null values 
-    
-    Returns
-    ----------
-    y_pred: array
-        predicted values by the model
-
-    y_true : array
-        actual values to compare to the prediction
-    metric_dict : dictionary
-        Contain the following metrics : 
-        rmse_val: 
-            Root mean square error calculate between y_pred and y_true
-        rmspe_val:
-            Root mean square percentage error calculate between y_pred and y_true    
-        mae_val:
-            Mean absolute error calculate between y_pred and y_true
-        mape_val:
-            Mean absolute percentage error calculate between y_pred and y_true
-        maape_val:
-            Mean Arctangente percentage error calculate between y_pred and y_true
-    """
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    best_model.load_state_dict(torch.load(path))
-    best_model = best_model.to(device)
-    best_model.double()
-    best_model.eval()
-    test_loss = 0.0
-    predictions = []
-    actuals = []
-    # test_data = datadict['test_data']
-    with torch.no_grad():
-        for i, (inputs, targets) in enumerate(test_loader):
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            x = torch.Tensor(inputs).unsqueeze(1).to(device)
-            y = torch.Tensor(targets).unsqueeze(0).to(device)
-            outputs = best_model(inputs)
-            loss = criterion(outputs, targets)
-            test_loss += loss.item()
-            predictions.append(outputs.cpu().numpy())
-            actuals.append(targets.cpu().numpy())
-    test_loss /= len(test_loader)
-    predictions = np.concatenate(predictions, axis=0)
-    actuals = np.concatenate(actuals, axis=0)
-    
-    y_pred = predictions[:,0]
-    y_true = actuals[:,0]
-    rmse_val= rmse(y_true,y_pred)
-    rmspe_val = rmspe(y_true,y_pred,percentage_error_fix)
-    mae_val = mean_absolute_error(y_true ,y_pred)
-    mape_val = mape(y_true,y_pred,percentage_error_fix)
-    maape_val =  maape(y_true,y_pred,percentage_error_fix)
-    metric_dict = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val}
-
-    # Set x and y labels
-    if plot : 
-        plt.figure(figsize=(28, 5))
-        plt.title('Actual vs Prediction')
-        plt.plot(y_true, label='Actuals')
-        plt.plot(y_pred, label='Predictions')
-        plt.xlabel('Time')
-        plt.ylabel('Value')
-        plt.legend()
-        plt.show()
-    return y_pred, y_true, metric_dict
+        

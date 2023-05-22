@@ -1,7 +1,8 @@
 import torch
 
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, createLoaders
-from src.models import TGCN, GRUModel, LSTMModel, train_model
+from src.models import TGCN, GRUModel, LSTMModel
+from src.utils_training import train_model
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -76,13 +77,13 @@ model_path = f"{path_save_model}/epoch_{num_epochs_TGCN}/TGCN_model.pkl"
 
 # # TGCN Model
 model_TGCN = TGCN(adjacency_matrix_PeMS, hidden_dim=32, output_size=len(df_PeMS.columns))
-train_loader_TGCN, val_loader_TGCN, test_loader_TGCN = createLoaders(df_PeMS, window_size=_window_size, stride=_stride, target_size=horizon)
+train_loader_TGCN, val_loader_TGCN, test_loader_TGCN, _ = createLoaders(df_PeMS, window_size=_window_size, prediction_horizon=horizon)
 tgcn_dict["testset"] = test_loader_TGCN
 _ , _, _ = train_model(model_TGCN, train_loader_TGCN, val_loader_TGCN, model_path=model_path, num_epochs=num_epochs_TGCN, remove=False)
 
 # # LSTM Model
 model_multivariate_LSTM = LSTMModel(len(df_PeMS.columns), 32, len(df_PeMS.columns))
-train_loader_LSTM, val_loader_LSTM, test_loader_LSTM = createLoaders(df_PeMS, window_size=_window_size, stride=_stride, target_size=horizon)
+train_loader_LSTM, val_loader_LSTM, test_loader_LSTM, _ = createLoaders(df_PeMS, window_size=_window_size, prediction_horizon=horizon)
 lstm_dict["testset"] = test_loader_LSTM
 _ , _, _ = train_model(model_multivariate_LSTM, train_loader_LSTM, val_loader_LSTM,
                                             f"{path_save_model}/epoch_{num_epochs_LSTM_multivariate}/multivariate_LSTM_model.pkl", 
@@ -90,7 +91,7 @@ _ , _, _ = train_model(model_multivariate_LSTM, train_loader_LSTM, val_loader_LS
 
 # # GRU Model
 model_multivariate_GRU = GRUModel(len(df_PeMS.columns), 32, len(df_PeMS.columns))
-train_loader_GRU, val_loader_GRU, test_loader_GRU = createLoaders(df_PeMS, window_size=_window_size, stride=_stride, target_size=horizon)
+train_loader_GRU, val_loader_GRU, test_loader_GRU, _ = createLoaders(df_PeMS, window_size=_window_size, prediction_horizon=horizon)
 gru_dict["testset"] = test_loader_GRU
 _ , _, _ = train_model(model_multivariate_GRU, train_loader_GRU, val_loader_GRU, 
                                             f"{path_save_model}/epoch_{num_epochs_GRU_multivariate}/multivariate_GRU_model.pkl", 
