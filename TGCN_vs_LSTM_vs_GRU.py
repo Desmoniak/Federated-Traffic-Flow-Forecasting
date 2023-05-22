@@ -1,4 +1,5 @@
 import torch
+import pickle
 
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, createLoaders
 from src.models import TGCN, GRUModel, LSTMModel
@@ -142,3 +143,10 @@ predictions_GRU = predictions_GRU.reshape(nb_row * horizon, n_neighbors+1)
 actuals_GRU = actuals_GRU.reshape(nb_row * horizon, n_neighbors+1)
 gru_dict["true_value"] = actuals_GRU
 gru_dict["pred_value"] = predictions_GRU
+
+with open(f"{path_save_model}/tgcn_dict.pkl", 'wb') as file:
+    pickle.dump(tgcn_dict, file)
+with open(f"{path_save_model}/lstm_dict.pkl", 'wb') as file:
+    pickle.dump(lstm_dict, file)
+with open(f"{path_save_model}/gru_dict.pkl", 'wb') as file:
+    pickle.dump(gru_dict, file)
