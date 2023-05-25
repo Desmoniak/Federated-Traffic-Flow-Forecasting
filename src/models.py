@@ -253,7 +253,3 @@ class TGCN(torch.nn.Module):
                 "output_size": self._output_size,
                 "num_layer": self._num_layer
         }
-
-
-
-        

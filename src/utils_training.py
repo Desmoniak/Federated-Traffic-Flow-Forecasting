@@ -1,6 +1,6 @@
 
 
-def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, remove = False, learning_rate = 0.001):
+def train_model(model, train_loader, val_loader, model_path, mask=None, num_epochs = 200, remove = False, learning_rate = 0.001):
     import os
     import torch
     import copy
@@ -39,6 +39,8 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
+    if mask != None:
+        mask = mask.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     
@@ -56,12 +58,15 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
             batch_size, horizon_size, num_nodes = targets.size()
             final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
             outputs = model(inputs)
-
+            if(mask != None):
+                outputs = outputs*mask
             final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1).float()
 
             for i in range(1, horizon_size):
 
                 outputs = model(torch.cat((inputs[:, i:, :], final_output), dim=1))
+                if(mask != None):
+                    outputs = outputs*mask
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
 
             optimizer.zero_grad()
@@ -83,7 +88,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     return best_model, train_losses, valid_losses
 
 
-def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_path, num_epochs, train_loss, epoch):
+def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_path, num_epochs, train_loss, epoch, mask=None):
         
         """
         Train your model and evaluate on the validation set
@@ -111,7 +116,8 @@ def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_
         import torch
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+        if mask != None:
+            mask.to(device)
         best_val_loss = float('inf')
         val_loss = 0.0
 
@@ -121,11 +127,15 @@ def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_
             batch_size, horizon_size, num_nodes = targets.size()
             final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
             outputs = model(inputs)
+            if mask != None:
+                outputs = outputs*mask
             final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
 
             for i in range(1, horizon_size):
 
                 outputs = model(torch.cat((inputs[:, i:, :], final_output), dim=1))
+                if mask != None:
+                    outputs = outputs*mask
                 final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
 
             optimizer.zero_grad()
@@ -146,7 +156,7 @@ def validate_model(val_loader, model, optimizer, criterion, valid_losses, model_
         return valid_losses
     
 
-def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
+def testmodel(best_model, test_loader, path=None, meanstd_dict=None, sensor_order_list =[], maximum= None, mask=None):
     """
     Test model using test data :  Testing is done using the recursive approch for horizon > 1 
 
@@ -198,6 +208,7 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
     best_model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     best_model.to(device)
+    
 
     # Evaluate the model on the test set
     test_loss = 0.0
@@ -225,8 +236,8 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
     y_true = actuals[:]
     if len(sensor_order_list)>1:
         for k in range(len(sensor_order_list)):
-            y_pred[k] =y_pred[k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
-            y_true[k]= y_true[k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+            y_pred[:,:,k] =y_pred[:,:,k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+            y_true[:,:,k]= y_true[:,:,k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
     elif len(sensor_order_list) == 1:
         y_pred =y_pred*meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean']
         y_true= y_true*meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean'] 
